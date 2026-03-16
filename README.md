@@ -109,6 +109,24 @@ terraform destroy -var-file="dev.tfvars"
 | Multi-AZ | No | No | Yes |
 | Auto Scale | No | Partial | Yes |
 
+## Running for Different Environments
+
+### Dev
+```bash
+terraform init -backend-config="conf/backend_dev"
+terraform apply -var-file="dev.tfvars"
+```
+
+### Staging
+```bash
+terraform init -backend-config="conf/backend_staging"
+terraform apply -var-file="staging.tfvars"
+```
+
+### Prod
+Prod is deployed automatically via GitHub Actions pipeline using GitHub Secrets.
+Do not apply prod manually.
+
 ## Important Notes
 
 - Each team member must use a **unique S3 bucket** for their backend state
@@ -138,3 +156,4 @@ Terraform/
     ├── iam/
     ├── ecr/
     └── s3/
+```
