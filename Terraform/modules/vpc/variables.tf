@@ -30,10 +30,7 @@ variable "public_subnet_cidr_2" {
 
 
 # Allowed IP for SSH access
-variable "allowed_cidr" {
-  description = "Your public IP address for SSH access (e.g., 203.0.113.5/32)"
-  type        = string
-}
+
 
 variable "db_subnet_cidr_1" {
   description = "CIDR block for first private DB subnet"
@@ -53,4 +50,9 @@ variable "private_subnet_cidr_1" {
 variable "private_subnet_cidr_2" {
   description = "CIDR block for second private subnet"
   type = string
+}
+
+variable "alb_sg_id" {
+  description = "ALB security group ID"
+  type        = string
 }

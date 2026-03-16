@@ -139,52 +139,26 @@ resource "aws_route_table_association" "private_assoc_2" {
   route_table_id = aws_route_table.private_rt.id
 }
 
-# Public security group (web server / NGINX)
+# ============================================
+# PUBLIC SECURITY GROUP (web server / NGINX)
+# Only ALB can send traffic in — no SSH, no direct internet
+# ============================================
+
 resource "aws_security_group" "public_sg" {
   name        = "${local.name_prefix}-public-sg"
-  description = "Public SG for web server"
+  description = "Public SG for web server - only ALB traffic allowed"
   vpc_id      = aws_vpc.vpc.id
   tags        = merge(local.base_tags, { Name = "${local.name_prefix}-public-sg" })
 }
 
-resource "aws_security_group_rule" "public_ssh" {
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
-  cidr_blocks       = [var.allowed_cidr]
-  security_group_id = aws_security_group.public_sg.id
-  description       = "SSH access"
-}
-
-resource "aws_security_group_rule" "public_http" {
-  type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.public_sg.id
-  description       = "HTTP access"
-}
-
-resource "aws_security_group_rule" "public_https" {
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.public_sg.id
-  description       = "HTTPS access"
-}
-
-resource "aws_security_group_rule" "public_app" {
-  type              = "ingress"
-  from_port         = 8080
-  to_port           = 8080
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.public_sg.id
-  description       = "App port access"
+resource "aws_security_group_rule" "public_from_alb" {
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  source_security_group_id = var.alb_sg_id
+  security_group_id        = aws_security_group.public_sg.id
+  description              = "Allow HTTP traffic from ALB only"
 }
 
 resource "aws_security_group_rule" "public_egress" {
@@ -197,7 +171,11 @@ resource "aws_security_group_rule" "public_egress" {
   description       = "Allow all outbound"
 }
 
-# Private security group (app server / Docker)
+# ============================================
+# PRIVATE SECURITY GROUP (app server / Docker)
+# Only public SG can send traffic in
+# ============================================
+
 resource "aws_security_group" "private_sg" {
   name        = "${local.name_prefix}-private-sg"
   description = "Private SG for app server"
@@ -214,6 +192,7 @@ resource "aws_security_group_rule" "private_from_public" {
   security_group_id        = aws_security_group.private_sg.id
   description              = "Allow all traffic from public SG"
 }
+
 resource "aws_security_group_rule" "private_egress" {
   type              = "egress"
   from_port         = 0
@@ -224,18 +203,22 @@ resource "aws_security_group_rule" "private_egress" {
   description       = "Allow all outbound"
 }
 
-# DB security group
+# ============================================
+# DB SECURITY GROUP
+# Only private SG can talk to DB on port 5432
+# ============================================
+
 resource "aws_security_group" "db_sg" {
   name        = "${local.name_prefix}-db-sg"
-  description = "DB SG - allow MySQL from private SG"
+  description = "DB SG - allow PostgreSQL from private SG only"
   vpc_id      = aws_vpc.vpc.id
   tags        = merge(local.base_tags, { Name = "${local.name_prefix}-db-sg" })
 }
 
 resource "aws_security_group_rule" "private_to_db" {
   type                     = "ingress"
-  from_port                = 3306
-  to_port                  = 3306
+  from_port                = 5432
+  to_port                  = 5432
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.private_sg.id
   security_group_id        = aws_security_group.db_sg.id
@@ -251,7 +234,11 @@ resource "aws_security_group_rule" "db_egress" {
   security_group_id = aws_security_group.db_sg.id
   description       = "Allow all outbound"
 }
-# DB subnet group
+
+# ============================================
+# DB SUBNET GROUP
+# ============================================
+
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "${local.name_prefix}-db-subnet-group"
   subnet_ids = [aws_subnet.db_subnet_1.id, aws_subnet.db_subnet_2.id]
