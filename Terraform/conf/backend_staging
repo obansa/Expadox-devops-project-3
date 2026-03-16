@@ -1,0 +1,4 @@
+bucket       = "cloudopshub-terraform-state"
+key          = "cloudopshub/staging/terraform.tfstate"
+region       = "us-east-1"
+use_lockfile = true

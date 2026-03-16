@@ -1,4 +1,4 @@
-    bucket = "tf-remote-backend-hajarat"
+    bucket = "cloudopshub-terraform-state"
     key    = "cloudopshub/dev/terraform.tfstate"
     region = "us-east-1"
     use_lockfile = true
