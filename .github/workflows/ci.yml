@@ -1,0 +1,70 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Frontend
+        run: |
+          docker build -t $ECR_URI/cloudopshub-frontend:${{ github.sha }} ./docker/frontend
+          docker push $ECR_URI/cloudopshub-frontend:${{ github.sha }}
+
+      - name: Build and push Backend
+        run: |
+          docker build -t $ECR_URI/cloudopshub-backend:${{ github.sha }} ./docker/backend
+          docker push $ECR_URI/cloudopshub-backend:${{ github.sha }}
+
+      - name: Update GitOps config with new image tag
+        run: |
+          sed -i "s|image:.*cloudopshub-frontend.*|image: $ECR_URI/cloudopshub-frontend:${{ github.sha }}|" gitops/dev/docker-compose.yml
+          sed -i "s|image:.*cloudopshub-backend.*|image: $ECR_URI/cloudopshub-backend:${{ github.sha }}|" gitops/dev/docker-compose.yml
+          git config user.email 'ci@groupf.local'
+          git config user.name 'CI Bot'
+          git add gitops/
+          git diff --staged --quiet || git commit -m 'ci: update image tags [${{ github.sha }}]'
+          git push
+
+  deploy-dev:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Dev EC2 via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ec2-user/Expadox-devops-project-3
+            git pull origin main
+            aws ecr get-login-password --region us-east-1 | \
+            docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            bash scripts/deploy.sh dev
