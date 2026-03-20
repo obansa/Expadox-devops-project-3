@@ -10,6 +10,7 @@ This repository contains the Terraform infrastructure code for CloudOpsHub — a
 
 - [Terraform](https://developer.hashicorp.com/terraform/install) v1.10+
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) v2
+- [AWS SSM Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) — required to connect to EC2 instances
 - Git
 - AWS account with appropriate permissions
 
@@ -29,7 +30,42 @@ cd Terraform
 aws configure
 ```
 
-### 3. Create your S3 backend bucket
+### 3. Install AWS SSM Session Manager Plugin
+
+This is required to connect to EC2 instances. SSH is disabled — all access is via SSM.
+
+**Windows:**
+Download and run the installer:
+```
+https://s3.amazonaws.com/session-manager-downloads/plugin/latest/windows/SessionManagerPluginSetup.exe
+```
+After installation restart your terminal completely.
+
+**macOS:**
+```bash
+curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o "sessionmanager-bundle.zip"
+unzip sessionmanager-bundle.zip
+sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin
+```
+
+**Linux:**
+```bash
+curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+sudo dpkg -i session-manager-plugin.deb
+```
+
+**Verify installation:**
+```bash
+session-manager-plugin --version
+```
+
+### 4. Connect to EC2 instances
+
+```bash
+aws ssm start-session --target <instance-id>
+```
+
+### 5. Create your S3 backend bucket
 
 Each team member must create a **unique** S3 bucket for their Terraform state:
 
@@ -46,7 +82,7 @@ region       = "us-east-1"
 use_lockfile = true
 ```
 
-### 4. Create your dev.tfvars file
+### 6. Create your dev.tfvars file
 
 Create `dev.tfvars` in the `Terraform/` folder using the template provided by the infra team.
 
@@ -132,7 +168,9 @@ Do not apply prod manually.
 - Each team member must use a **unique S3 bucket** for their backend state
 - Get your AMI ID from AWS Console for your specific region
 - RDS takes 5-10 minutes to create and destroy
-- Use **SSM Session Manager** instead of SSH to connect to EC2 instances — no key pairs or open ports needed
+- **SSH is disabled** — use SSM Session Manager to connect to EC2 instances
+- Install the SSM Session Manager Plugin before attempting to connect
+- Restart your terminal after installing the SSM plugin
 - Production values are managed via GitHub Secrets — no `prod.tfvars` file
 
 ## Project Structure
