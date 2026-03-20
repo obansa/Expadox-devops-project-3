@@ -47,6 +47,8 @@ module "web_server" {
   max_size           = var.web_max_size
   target_group_arn   = module.alb.target_group_arn
   enable_alb_attachment = true
+  instance_profile_name = module.iam.web_instance_profile_name
+  
   
 }
 
@@ -67,7 +69,7 @@ module "app_server" {
   min_size           = var.app_min_size
   max_size           = var.app_max_size
   enable_alb_attachment = false
-  
+  instance_profile_name = module.iam.app_instance_profile_name
 }
 
 
