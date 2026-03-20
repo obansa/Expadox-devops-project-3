@@ -18,14 +18,17 @@ resource "aws_launch_template" "this" {
   instance_type = var.instance_type
   key_name      = var.key_name
   description   = "Launch template for ${var.server_role} server"
+  user_data = filebase64("${path.module}/web_userdata.sh")
+
+  iam_instance_profile {
+    name = var.instance_profile_name
+  }
 
   monitoring {
     enabled = true
   }
 
   vpc_security_group_ids = var.security_group_ids
-
- 
 
   tag_specifications {
     resource_type = "instance"
@@ -40,6 +43,7 @@ resource "aws_launch_template" "this" {
   tags = merge(local.base_tags, { Name = "${local.name_prefix}-lt" })
 }
 
+# --------------------------------------
 # Auto Scaling Group
 # --------------------------------------
 resource "aws_autoscaling_group" "this" {

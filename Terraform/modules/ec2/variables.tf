@@ -82,3 +82,7 @@ variable "enable_alb_attachment" {
   type        = bool
   default     = false
 }
+variable "instance_profile_name" {
+  description = "IAM instance profile name"
+  type        = string
+}
