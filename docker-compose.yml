@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  nginx:
+    build: ./docker/nginx
+    ports:
+      - '80:80'
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+
+  frontend:
+    build: ./docker/frontend
+    restart: always
+
+  backend:
+    build: ./docker/backend
+    ports:
+      - '3000:3000'
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=cloudopshub
+      - DB_USER=admin
+      - DB_PASSWORD=localpassword
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: localpassword
+      MYSQL_DATABASE: cloudopshub
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+
+volumes:
+  db_data:
