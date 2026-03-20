@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=GroupFAdmin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: always
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - '9100:9100'
+    restart: always
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - '8080:8080'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: always
+
+volumes:
+  prometheus_data:
+  grafana_data:
