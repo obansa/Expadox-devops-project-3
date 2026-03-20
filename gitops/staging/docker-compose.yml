@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  nginx:
+    build: /home/ec2-user/Expadox-devops-project-3/docker/nginx
+    ports:
+      - '8080:80'
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+
+  frontend:
+    image: 946232033285.dkr.ecr.us-east-1.amazonaws.com/cloudopshub-frontend:latest
+    restart: always
+
+  backend:
+    image: 946232033285.dkr.ecr.us-east-1.amazonaws.com/cloudopshub-backend:latest
+    environment:
+      - DB_HOST=cloudopshub-dev-db.cgfwyymcyxpk.us-east-1.rds.amazonaws.com
+      - DB_PORT=3306
+      - DB_NAME=cloudopshub
+      - DB_USER=admin
+      - DB_PASSWORD=${DB_PASSWORD}
+    restart: always
